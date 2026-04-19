@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -14,6 +15,7 @@ input,select{width:100%;padding:8px;margin:5px 0;}
 button{padding:8px;margin:3px;}
 .user{font-size:12px;}
 </style>
+
 </head>
 
 <body>
@@ -21,17 +23,14 @@ button{padding:8px;margin:3px;}
 <header>
 <div>
 <b>SEC 在庫管理</b><br>
-<span class="user" id="user"></span>
+<span id="user" class="user"></span>
 </div>
 <div id="date"></div>
 </header>
 
 <div class="container">
 
-<button onclick="login()">ログイン</button>
-<button onclick="logout()">ログアウト</button>
-<button onclick="showForm()">＋登録</button>
-<button onclick="exportCSV()">CSV</button>
+<button onclick="login()">ログイン</button> <button onclick="logout()">ログアウト</button> <button onclick="showForm()">＋登録</button> <button onclick="exportCSV()">CSV</button>
 
 <div id="list"></div>
 
@@ -48,8 +47,8 @@ button{padding:8px;margin:3px;}
 <option>故障</option>
 </select>
 
-<button onclick="save()">保存</button>
-<button onclick="cancel()">キャンセル</button>
+<button onclick="save()">保存</button> <button onclick="cancel()">キャンセル</button>
+
 </div>
 
 </div>
@@ -106,24 +105,27 @@ onAuthStateChanged(auth, user=>{
   }
 });
 
+// フォーム表示
 function showForm(){
   document.getElementById("form").style.display="block";
 }
 window.showForm = showForm;
 
+// キャンセル
 function cancel(){
   document.getElementById("form").style.display="none";
   editId=null;
 }
 window.cancel = cancel;
 
+// ★ここが修正済みの保存処理
 async function save(){
   const item={
-    name:name.value,
-    model:model.value,
-    qty:Number(qty.value),
-    place:place.value,
-    status:status.value
+    name: document.getElementById("name").value,
+    model: document.getElementById("model").value,
+    qty: Number(document.getElementById("qty").value),
+    place: document.getElementById("place").value,
+    status: document.getElementById("status").value
   };
 
   if(editId){
@@ -136,22 +138,25 @@ async function save(){
 }
 window.save = save;
 
+// 編集
 window.edit=(id,data)=>{
-  name.value=data.name;
-  model.value=data.model;
-  qty.value=data.qty;
-  place.value=data.place;
-  status.value=data.status;
+  document.getElementById("name").value=data.name;
+  document.getElementById("model").value=data.model;
+  document.getElementById("qty").value=data.qty;
+  document.getElementById("place").value=data.place;
+  document.getElementById("status").value=data.status;
   editId=id;
   showForm();
 }
 
+// 削除
 window.del=async(id)=>{
   if(confirm("削除する？")){
     await deleteDoc(doc(db,"stock",id));
   }
 }
 
+// リアルタイム表示
 onSnapshot(col,(snap)=>{
   let html="";
   let csvData=[];
@@ -177,6 +182,7 @@ onSnapshot(col,(snap)=>{
   window._csvData = csvData;
 });
 
+// CSV出力
 window.exportCSV=()=>{
   let csv="品名,型番,数量,場所,状態\n";
   (_csvData||[]).forEach(x=>{
