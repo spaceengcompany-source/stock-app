@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEC 在庫管理（共有版）</title>
+
+<style>
+body{font-family:sans-serif;margin:0;background:#f5f5f5;}
+header{background:#2c3e50;color:white;padding:10px;display:flex;justify-content:space-between;}
+.container{padding:10px;}
+.card{background:white;padding:10px;margin-bottom:10px;border-radius:8px;}
+input,select{width:100%;padding:8px;margin:5px 0;}
+button{padding:8px;margin:3px;}
+</style>
+</head>
+
+<body>
+
+<header>
+<b>SEC 在庫管理（共有）</b>
+<div id="date"></div>
+</header>
+
+<div class="container">
+
+<button onclick="showForm()">＋登録</button>
+<button onclick="exportCSV()">CSV</button>
+
+<div id="list"></div>
+
+<div id="form" style="display:none;">
+<h3>登録 / 編集</h3>
+品名<input id="name">
+型番<input id="model">
+数量<input id="qty" type="number">
+場所<input id="place">
+状態
+<select id="status">
+<option>正常</option>
+<option>使用中</option>
+<option>故障</option>
+</select>
+
+<button onclick="save()">保存</button>
+<button onclick="cancel()">キャンセル</button>
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc,
+  onSnapshot, doc, deleteDoc, updateDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ★ あなたのFirebase設定（修正済み）
+const firebaseConfig = {
+  apiKey: "AIzaSyCfhiORezh7AuVqJ-i7FJW4htnry5LKC-8",
+  authDomain: "stock-app-6168b.firebaseapp.com",
+  projectId: "stock-app-6168b",
+  storageBucket: "stock-app-6168b.appspot.com",
+  messagingSenderId: "562400135994",
+  appId: "1:562400135994:web:1a32dcc6e712200b225e03",
+  measurementId: "G-KF8BVW3RGP"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const col = collection(db, "stock");
+
+let editId = null;
+
+document.getElementById("date").innerText = new Date().toLocaleDateString();
+
+function showForm(){
+  document.getElementById("form").style.display="block";
+}
+window.showForm = showForm;
+
+function cancel(){
+  document.getElementById("form").style.display="none";
+  editId=null;
+}
+window.cancel = cancel;
+
+async function save(){
+  const item={
+    name:name.value,
+    model:model.value,
+    qty:Number(qty.value),
+    place:place.value,
+    status:status.value
+  };
+
+  if(editId){
+    await updateDoc(doc(db,"stock",editId),item);
+  }else{
+    await addDoc(col,item);
+  }
+
+  cancel();
+}
+window.save = save;
+
+window.edit=(id,data)=>{
+  name.value=data.name;
+  model.value=data.model;
+  qty.value=data.qty;
+  place.value=data.place;
+  status.value=data.status;
+  editId=id;
+  showForm();
+}
+
+window.del=async(id)=>{
+  if(confirm("削除する？")){
+    await deleteDoc(doc(db,"stock",id));
+  }
+}
+
+// リアルタイム同期
+onSnapshot(col,(snap)=>{
+  let html="";
+  let csvData=[];
+
+  snap.forEach(docu=>{
+    const d=docu.data();
+    const id=docu.id;
+
+    csvData.push(d);
+
+    html+=`
+    <div class="card">
+    <b>${d.name}</b> (${d.model})<br>
+    在庫:${d.qty} / ${d.place}<br>
+    状態:${d.status}<br>
+    <button onclick='edit("${id}",${JSON.stringify(d)})'>編集</button>
+    <button onclick='del("${id}")'>削除</button>
+    </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML=html;
+
+  window._csvData = csvData;
+});
+
+window.exportCSV=()=>{
+  let csv="品名,型番,数量,場所,状態\n";
+  (_csvData||[]).forEach(x=>{
+    csv+=`${x.name},${x.model},${x.qty},${x.place},${x.status}\n`;
+  });
+
+  let blob=new Blob([csv],{type:"text/csv"});
+  let a=document.createElement("a");
+
+  let d=new Date();
+  let name=
+  d.getFullYear().toString().slice(2)+
+  ("0"+(d.getMonth()+1)).slice(-2)+
+  ("0"+d.getDate()).slice(-2)+
+  ("0"+d.getHours()).slice(-2)+
+  ("0"+d.getMinutes()).slice(-2)+
+  "Loadcalc.csv";
+
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  a.click();
+}
+
+</script>
+
+</body>
+</html>
